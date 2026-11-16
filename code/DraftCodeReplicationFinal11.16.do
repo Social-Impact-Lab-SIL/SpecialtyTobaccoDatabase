@@ -654,23 +654,23 @@ egen UStotalcigar = sum(countycigar)
 
 replace countyNper = . if countyNper == 0
 maptile countyNper, geo(county2010) nq(10) stateoutline(vthin) twopt(title("") legend(label(1 "No Stores") size(small))) ndf(white) legf(%4.1f)
-graph save "Graph" "../../Figures/GoogleStores.gph", replace
-graph export "../../Figures/GoogleStores.png", as(png) name("Graph") replace
+graph save "Graph" "../../Figures/GoogleStores11.16.gph", replace
+graph export "../../Figures/GoogleStores11.16.png", as(png) name("Graph") replace
 
 replace countyvapeper = . if countyvapeper == 0
 maptile countyvapeper, geo(county2010) cutv(.5 1 2 5 10 20 30) stateoutline(vthin) twopt(legend(label(1 "No Stores") label(2 "0.1 {&minus} 0.5") label(9 "30.0+") size(small))) ndf(white) legf(%4.1f)
-graph save "Graph" "../../Figures/GoogleVape.gph", replace
-graph export "../../Figures/GoogleVape.png", as(png) name("Graph") replace
+graph save "Graph" "../../Figures/GoogleVape11.16.gph", replace
+graph export "../../Figures/GoogleVape11.16.png", as(png) name("Graph") replace
 
 replace countytobaccoper = . if countytobaccoper == 0
 maptile countytobaccoper, geo(county2010) cutv(.5 1 2 5 10 20 30) stateoutline(vthin) twopt(legend(label(1 "No Stores") label(2 "0.1 {&minus} 0.5") label(9 "30.0+") size(small))) ndf(white) legf(%4.1f)
-graph save "Graph" "../../Figures/GoogleSmoke.gph", replace
-graph export "../../Figures/GoogleSmoke.png", as(png) name("Graph") replace
+graph save "Graph" "../../Figures/GoogleSmoke11.16.gph", replace
+graph export "../../Figures/GoogleSmoke11.16.png", as(png) name("Graph") replace
 
 replace countycigarper = . if countycigarper == 0
 maptile countycigarper, geo(county2010) cutv(.5 1 2 5 10 20 30) stateoutline(vthin) twopt(legend(label(1 "No Stores") label(2 "0.1 {&minus} 0.5") label(9 "30.0+") size(small))) ndf(white) legf(%4.1f)
-graph save "../../Figures/GoogleCigar.gph", replace
-graph export "../../Figures/GoogleCigar.png", as(png) name("Graph") replace
+graph save "../../Figures/GoogleCigar11.16.gph", replace
+graph export "../../Figures/GoogleCigar11.16.png", as(png) name("Graph") replace
 tostring county, gen(fips) format(%05.0f)
 save "CountyTobacco.dta", replace
 
@@ -929,7 +929,8 @@ esttab m1 m2 m3 using TractTable3a.tex, tex replace b(%5.3f) se(%5.3f) star(* .1
 ******************
 use ../Matched/AllMatchVapeSmokeCigarFinal, clear
 
-geoinpoly latitude longitude using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/Matched/AllTracts_shp.dta"
+*geoinpoly latitude longitude using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/Matched/AllTracts_shp.dta"
+geoinpoly latitude longitude using "../Matched/AllTracts_shp.dta"
 merge m:1 _ID using ../Matched/AllTracts.dta
 gen fips = TRACT
 gen county = substr(fips, 1, 5)
@@ -943,7 +944,8 @@ bys county: fillmissing countyPop
 drop ID AREA COLORING TRACT-_merge 
 rename raw_visit_counts visits
 rename raw_visitor_counts visitors 
-merge m:1 fips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/ACSTract19.dta"
+*merge m:1 fips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/ACSTract19.dta"
+merge m:1 fips using "../ACSTract19.dta"
 drop _merge 
 replace county = substr(fips, 1, 5)
 
@@ -978,37 +980,45 @@ gen county`v'visitorsper = county`v'visitors/(countyPop/100000)
 }
 
 ***Need to add separate poverty and income variables***
-merge m:1 fips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/Poverty.dta"
+*merge m:1 fips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/Poverty.dta"
+merge m:1 fips using "../Poverty.dta"
 drop _merge 
 label var povertypct "Poverty \%"
-merge m:1 fips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/HHMedian.dta"
+*merge m:1 fips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/HHMedian.dta"
+merge m:1 fips using "../HHMedian.dta"
 label var HH_MEDIAN_ "HH Median Income"
 drop _merge
 
-bys county: egen countypovbase = sum(povbase)
-bys county: egen countyinpov = sum(inpov)
+bys county: egen countypovbase = sum(povbase) if tracttag == 1
+bys county: egen countyinpov = sum(inpov) if tracttag == 1
+bys fips: fillmissing(countypovbase countyinpov)
 gen countypovertypct = countyinpov/countypovbase*100
 label var countypovertypct "Poverty%"
 
-bys county: egen county1519 = sum(AGE_15_TO)
-bys county: egen county2024 = sum(AGE_20_TO)
+bys county: egen county1519 = sum(AGE_15_TO) if tracttag == 1
+bys county: egen county2024 = sum(AGE_20_TO) if tracttag == 1
+bys fips: fillmissing(county1519 county2024)
 gen county1524pct = (county1519 + county2024)/countyPop*100
 
-bys county: egen countybachelor = sum(o25bachelorormore)
-bys county: egen countyo25 = sum(o25)
+bys county: egen countybachelor = sum(o25bachelorormore) if tracttag == 1
+bys county: egen countyo25 = sum(o25) if tracttag == 1
+bys fips: fillmissing(countybachelor countyo25)
 gen countybachelorpct = countybachelor/countyo25*100
 
-bys county: egen CountyNH = sum(NonHispanicWA)
+bys county: egen CountyNH = sum(NonHispanicWA) if tracttag == 1
+bys fips: fillmissing(CountyNH)
 gen countyminoritypct = ((countyPop-CountyNH)/countyPop)*100
 
-bys county: egen countyfemale = sum(totalfemale)
-gen countyfemalepct = totalfemale/countyPop*100
+bys county: egen countyfemale = sum(totalfemale) if tracttag == 1
+gen countyfemalepct = countyfemale/countyPop*100
 
 destring county, replace 
-merge m:1 county using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/rucc2013.dta" 
+*merge m:1 county using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/rucc2013.dta" 
+merge m:1 county using "../rucc2013.dta" 
 drop _merge 
-egen urbanpop = sum(Population) if rucc2013 < 4
-egen ruralpop = sum(Population) if rucc2013 > 3
+egen urbanpop = sum(Population) if rucc2013 < 4 & tracttag == 1
+egen ruralpop = sum(Population) if rucc2013 > 3 & tracttag == 1
+bys fips: fillmissing(urbanpop ruralpop)
 gen rural = 0 
 replace rural = 1 if rucc2013 > 3
 
@@ -1043,8 +1053,8 @@ coefplot (m1, label(Vape) msymbol(circle)) (m2, label(Tobacco) msymbol(diamond))
 */
 estimates drop _all 
 
-*tostring county, gen(countyfips) format(%05.0f)
-*gen state = substr(countyfips, 1, 2)
+tostring county, gen(countyfips) format(%05.0f)
+gen state = substr(countyfips, 1, 2)
 
 
 foreach v of varlist countyvapevisits-countycigarvisitorsper {
@@ -1158,9 +1168,10 @@ sum countyvape countytobacco countycigar [aweight=countyPop]
 
 ***Table 2, Panel B***
 estimates drop _all 
-merge 1:1 countyfips using "/cluster/VAST/mp94p-lab/Landini/Figures/CountySmoking.dta"
-drop _merge 
-merge 1:1 countyfips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/Matched/GoogleCounty.dta"
+*merge 1:1 countyfips using "/cluster/VAST/mp94p-lab/Landini/Figures/CountySmoking.dta"
+*drop _merge 
+*merge 1:1 countyfips using "/cluster/VAST/mp94p-lab/Landini/GoogleLocations/Matched/GoogleCounty.dta"
+merge 1:1 countyfips using "../Matched/GoogleCounty.dta"
 drop _merge 
 gen unmatchedvape = countyvapegoogle-countyvape 
 gen unmatchedtobacco = countytobaccogoogle-countytobacco
@@ -1180,7 +1191,7 @@ est sto m4
 areg smoking_rate unmatchedvape unmatchedtobacco unmatchedcigar lncountyvapevisitors lncountytobaccovisitors lncountycigarvisitors county1524pct countyminoritypct countyfemalepct countypovertypct rural countyHSorLess [aweight = countyPop], absorb(state) robust 
 est sto m3
 
-label var smoking_rate "Smoking Rate"
+*label var smoking_rate "Smoking Rate"
 label var countyvape "\# Vape Matches"
 label var countytobacco "\# Smoke Matches"
 label var countycigar "\#Cigar Matches"
@@ -1248,7 +1259,8 @@ est sto m3
 esttab m1 m2 m3 using ImpactCombine3.tex, tex replace b(%5.3f) se(%5.3f) star(* .1 ** .05 *** .01) label stats(N r2_a)
 
 ***Version of Table 2 with disaggregated race***
-merge 1:1 countyfips using "/cluster/VAST/mp94p-lab/Landini/Figures/CountyDemog.dta"
+*merge 1:1 countyfips using "/cluster/VAST/mp94p-lab/Landini/Figures/CountyDemog.dta"
+merge 1:1 countyfips using "../../Figures/CountyDemog.dta"
 keep if _merge == 3
 drop _merge 
 
@@ -1271,7 +1283,7 @@ est sto m2
 areg lncountycigarvisitors countyvape countytobacco countycigar unmatchedvape unmatchedtobacco unmatchedcigar county1524pct Hispanicpct NonHispanicBApct NonHispanicAApct NonHispanicOtherpct countyfemalepct countypovertypct rural countyHSorLess [aweight = countyPop], absorb(state) robust 
 est sto m3
 
-esttab m1 m2 m3 using ImpactCombine4.tex, tex replace b(%5.3f) se(%5.3f) star(* .1 ** .05 *** .01) label stats(N r2_a)
+esttab m1 m2 m3 using ImpactCombine4a.tex, tex replace b(%5.3f) se(%5.3f) star(* .1 ** .05 *** .01) label stats(N r2_a)
 
 ***Suggested Appendix Table 
 estimates drop _all 
@@ -1447,6 +1459,8 @@ maptile_install using "http://files.michaelstepner.com/geo_county2010.zip"
 maptile_install using "http://files.michaelstepner.com/geo_state.zip"
 replace countyNper = . if countyNper == 0
 maptile countyNper, geo(county2010) nq(10) stateoutline(vthin) twopt(title("") legend(label(1 "No Stores") size(small))) ndf(white)
+graph save "Graph" "../../Figures/GoogleStores11.16.gph", replace
+graph export "../../Figures/GoogleStores11.16.png", as(png) name("VapeDensity2") replace
 
 replace countyvapeper = . if countyvapeper == 0
 maptile countyvapeper, geo(county2010) cutv(.5 1 2 5 10) stateoutline(vthin) twopt(legend(label(1 "No Stores") label(7 "10.0+") size(small))) ndf(white)
